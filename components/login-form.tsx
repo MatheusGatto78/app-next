@@ -30,21 +30,36 @@ export function LoginForm({
 
   function handleLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError("");
     const formData = new FormData(event.currentTarget);
     const email = formData.get("email") as string;
     const senha = formData.get("senha") as string;
+
+    console.log("Tentando fazer login com:", { email, senha });
 
     authClient.signIn.email({
       email: email,
       password: senha
     },
     {
-      onSuccess: () => redirect("/dashboard"),
-      onRequest: () => setloading(true),
-      onResponse:() => setloading(false),
-      onError: (ctx) => setError(ctx.error.message)
+      onSuccess: () => {
+        console.log("Login bem-sucedido, redirecionando...");
+        redirect("/dashboard");
+      },
+      onRequest: () => {
+        console.log("Iniciando requisição de login...");
+        setloading(true);
+      },
+      onResponse: () => {
+        console.log("Resposta recebida");
+        setloading(false);
+      },
+      onError: (ctx) => {
+        console.error("Erro no login:", ctx);
+        setError(ctx?.error?.message || "Erro ao fazer login");
+        setloading(false);
+      }
     }
-
   )
   }
 
@@ -58,12 +73,13 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={handleLogin}>
             <FieldGroup>
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="m@example.com"
                   required
@@ -79,16 +95,19 @@ export function LoginForm({
                     Forgot your password?
                   </a>
                 </div>
-                <Input id="password" type="password" required />
+                <Input id="password" name="senha" type="password" required />
               </Field>
               <Field>
-                <Button type="submit">Login</Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Entrando..." : "Login"}
+                </Button>
                 <Button variant="outline" type="button">
                   Login with Google
                 </Button>
                 <FieldDescription className="text-center">
-                  Don&apos;t have an account? <a href="#">Sign up</a>
+                  Don&apos;t have an account? <a href="/registro">Sign up</a>
                 </FieldDescription>
+                {error && <div className="mt-2 text-sm text-red-600">{error}</div>}
               </Field>
             </FieldGroup>
           </form>
