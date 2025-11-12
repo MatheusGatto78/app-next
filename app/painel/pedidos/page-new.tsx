@@ -1,11 +1,27 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import prisma from '@/lib/prisma-client'
 import AddPedido from './_components/add-pedido'
+import { listarProdutos } from './actions'
 import { PedidosDataTable } from './_components/pedidos-data-table'
-import { listarPedidos, listarProdutos } from './actions'
 
 export default async function PedidosPage() {
   const [pedidos, produtos] = await Promise.all([
-    listarPedidos(),
+    prisma.pedido.findMany({
+      include: {
+        produtos: {
+          include: {
+            produto: {
+              include: {
+                categoria: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    }),
     listarProdutos()
   ])
 
@@ -15,7 +31,7 @@ export default async function PedidosPage() {
     }, 0)
   }
 
-  // Transformar dados para o formato esperado pelo DataTable
+  // Transformar dados para o formato esperado
   const pedidosData = pedidos.map(pedido => ({
     id: pedido.id,
     nome: pedido.nome,
@@ -66,7 +82,10 @@ export default async function PedidosPage() {
               </div>
             </div>
           ) : (
-            <PedidosDataTable pedidos={pedidosData} produtos={produtos} />
+            <PedidosDataTable 
+              pedidos={pedidosData} 
+              produtos={produtos} 
+            />
           )}
         </CardContent>
       </Card>

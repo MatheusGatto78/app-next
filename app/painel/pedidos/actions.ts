@@ -196,3 +196,28 @@ export async function listarProdutos() {
     return []
   }
 }
+
+export async function listarPedidos() {
+  try {
+    const pedidos = await prisma.pedido.findMany({
+      include: {
+        produtos: {
+          include: {
+            produto: {
+              include: {
+                categoria: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
+    return pedidos
+  } catch (error) {
+    console.error('Erro ao listar pedidos:', error)
+    return []
+  }
+}
