@@ -1,18 +1,9 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import prisma from '@/lib/prisma-client'
 import AddPedido from './_components/add-pedido'
-import EditPedido from './_components/edit-pedido'
-import DeletePedido from './_components/delete-pedido'
 import { listarProdutos } from './actions'
+import { DataTable } from './_components/data-table'
+import { createColumns, PedidoData } from './_components/columns'
 
 export default async function PedidosPage() {
   const [pedidos, produtos] = await Promise.all([
@@ -41,6 +32,26 @@ export default async function PedidosPage() {
     }, 0)
   }
 
+  // Transformar dados para o formato esperado pelo DataTable
+  const pedidosData: PedidoData[] = pedidos.map(pedido => ({
+    id: pedido.id,
+    nome: pedido.nome,
+    endereco: pedido.endereco,
+    telefone: pedido.telefone,
+    produtos: pedido.produtos.map(p => ({
+      produto: {
+        id: p.produto.id,
+        nome: p.produto.nome,
+        preco: p.produto.preco
+      },
+      quantidade: p.quantidade
+    })),
+    total: calcularTotalPedido(pedido.produtos),
+    createdAt: pedido.createdAt
+  }))
+
+  const columns = createColumns(produtos)
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -61,7 +72,7 @@ export default async function PedidosPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {pedidos.length === 0 ? (
+          {pedidosData.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="rounded-lg border border-dashed p-8">
                 <h3 className="text-lg font-semibold">Nenhum pedido encontrado</h3>
@@ -74,79 +85,7 @@ export default async function PedidosPage() {
               </div>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Endereço</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Produtos</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pedidos.map((pedido) => {
-                  const total = calcularTotalPedido(pedido.produtos)
-                  
-                  return (
-                    <TableRow key={pedido.id}>
-                      <TableCell className="font-medium">{pedido.nome}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">{pedido.endereco}</TableCell>
-                      <TableCell>{pedido.telefone}</TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          {pedido.produtos.map((item, index) => (
-                            <div key={index} className="flex items-center gap-2">
-                              <Badge variant="secondary" className="text-xs">
-                                {item.quantidade}x {item.produto.nome}
-                              </Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-semibold text-green-600">
-                        R$ {total.toFixed(2).replace('.', ',')}
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div>{pedido.createdAt.toLocaleDateString('pt-BR')}</div>
-                          <div className="text-muted-foreground">
-                            {pedido.createdAt.toLocaleTimeString('pt-BR', { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          <EditPedido
-                            pedido={{
-                              id: pedido.id,
-                              nome: pedido.nome,
-                              endereco: pedido.endereco,
-                              telefone: pedido.telefone,
-                              produtos: pedido.produtos.map(p => ({
-                                produto: {
-                                  id: p.produto.id,
-                                  nome: p.produto.nome,
-                                  preco: p.produto.preco
-                                },
-                                quantidade: p.quantidade
-                              }))
-                            }}
-                            produtos={produtos}
-                          />
-                          <DeletePedido id={pedido.id} nome={pedido.nome} />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
+            <DataTable columns={columns} data={pedidosData} />
           )}
         </CardContent>
       </Card>
