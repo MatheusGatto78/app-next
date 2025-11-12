@@ -1,9 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import prisma from '@/lib/prisma-client'
 import AddPedido from './_components/add-pedido'
+import EditPedido from './_components/edit-pedido'
+import DeletePedido from './_components/delete-pedido'
 import { listarProdutos } from './actions'
 import { DataTable } from './_components/data-table'
-import { createColumns, PedidoData } from './_components/columns'
+import { columns, PedidoData } from './_components/columns-simple'
+import { ColumnDef } from "@tanstack/react-table"
 
 export default async function PedidosPage() {
   const [pedidos, produtos] = await Promise.all([
@@ -50,7 +53,33 @@ export default async function PedidosPage() {
     createdAt: pedido.createdAt
   }))
 
-  const columns = createColumns(produtos)
+  // Adicionar coluna de ações
+  const columnsWithActions: ColumnDef<PedidoData>[] = [
+    ...columns,
+    {
+      id: "actions",
+      header: "Ações",
+      cell: ({ row }) => {
+        const pedido = row.original
+        
+        return (
+          <div className="flex gap-2 justify-end">
+            <EditPedido
+              pedido={{
+                id: pedido.id,
+                nome: pedido.nome,
+                endereco: pedido.endereco,
+                telefone: pedido.telefone,
+                produtos: pedido.produtos
+              }}
+              produtos={produtos}
+            />
+            <DeletePedido id={pedido.id} nome={pedido.nome} />
+          </div>
+        )
+      },
+    },
+  ]
 
   return (
     <div className="p-6 space-y-6">
@@ -85,7 +114,7 @@ export default async function PedidosPage() {
               </div>
             </div>
           ) : (
-            <DataTable columns={columns} data={pedidosData} />
+            <DataTable columns={columnsWithActions} data={pedidosData} />
           )}
         </CardContent>
       </Card>
