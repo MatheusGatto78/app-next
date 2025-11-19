@@ -19,9 +19,10 @@ async function getCategoryBySlug(slug: string) {
 export default async function CategoryPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const category = await getCategoryBySlug(params.slug);
+  const { slug } = await params;
+  const category = await getCategoryBySlug(slug);
 
   if (!category) {
     notFound();
