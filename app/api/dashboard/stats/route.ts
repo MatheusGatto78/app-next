@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma-client";
+import prisma from "@/lib/prisma-client";
 
 export async function GET() {
   try {
@@ -35,7 +35,7 @@ export async function GET() {
     ]);
 
     // Calcular receita total
-    const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+    const totalRevenue = orders.reduce((sum: number, order: any) => sum + order.total, 0);
 
     // Calcular pedidos por dia para o gráfico (últimos 30 dias)
     const thirtyDaysAgo = new Date();
@@ -55,7 +55,7 @@ export async function GET() {
     });
 
     // Agrupar por dia
-    const chartData = ordersByDay.reduce((acc: any[], order) => {
+    const chartData = ordersByDay.reduce((acc: any[], order: any) => {
       const date = new Date(order.createdAt).toLocaleDateString('pt-BR');
       const existing = acc.find(item => item.date === date);
       
