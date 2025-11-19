@@ -43,8 +43,17 @@ export function LoginForm({
     },
     {
       onSuccess: () => {
-        console.log("Login bem-sucedido, redirecionando...");
-        redirect("/dashboard");
+        console.log("Login bem-sucedido");
+        
+        // Verificar se há uma URL de redirecionamento salva
+        const redirectUrl = localStorage.getItem('redirectAfterLogin');
+        if (redirectUrl) {
+          localStorage.removeItem('redirectAfterLogin');
+          window.location.href = redirectUrl;
+        } else {
+          // Redirecionar para home por padrão
+          window.location.href = '/';
+        }
       },
       onRequest: () => {
         console.log("Iniciando requisição de login...");

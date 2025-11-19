@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { authClient } from '@/lib/auth-client';
 
 interface CartItem {
   id: string;
@@ -26,11 +27,18 @@ interface FormErrors {
   customerPhone?: string;
 }
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   
   const [formData, setFormData] = useState<FormData>({
     customerName: '',
@@ -41,20 +49,50 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<FormErrors>({});
 
   useEffect(() => {
-    // Carregar carrinho do localStorage
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      const cart = JSON.parse(savedCart);
-      if (cart.length === 0) {
+    const checkAuthAndLoadCart = async () => {
+      // Verificar se o usuário está logado
+      try {
+        const session = await authClient.getSession();
+        if (!session?.data?.user) {
+          // Salvar URL atual para redirecionar depois do login
+          localStorage.setItem('redirectAfterLogin', '/checkout');
+          router.push('/login');
+          return;
+        }
+        
+        const userData = session.data.user as User;
+        setUser(userData);
+        
+        // Preencher formulário com dados do usuário
+        setFormData({
+          customerName: userData.name || '',
+          customerEmail: userData.email || '',
+          customerPhone: ''
+        });
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+        localStorage.setItem('redirectAfterLogin', '/checkout');
+        router.push('/login');
+        return;
+      }
+
+      // Carregar carrinho do localStorage
+      const savedCart = localStorage.getItem('cart');
+      if (savedCart) {
+        const cart = JSON.parse(savedCart);
+        if (cart.length === 0) {
+          router.push('/carrinho');
+          return;
+        }
+        setCartItems(cart);
+      } else {
         router.push('/carrinho');
         return;
       }
-      setCartItems(cart);
-    } else {
-      router.push('/carrinho');
-      return;
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+
+    checkAuthAndLoadCart();
   }, [router]);
 
   const getTotalPrice = () => {
@@ -100,27 +138,40 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
-      // Simular envio do pedido
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Enviar pedido para a API
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customerName: formData.customerName,
+          customerEmail: formData.customerEmail,
+          customerPhone: formData.customerPhone,
+          items: cartItems,
+          total: getTotalPrice() + 5, // inclui taxa de entrega
+          userId: user?.id
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao processar pedido');
+      }
+
+      const data = await response.json();
       
-      // Criar objeto do pedido
-      const order = {
-        customer: formData,
-        items: cartItems,
-        total: getTotalPrice() + 5, // inclui taxa de entrega
-        orderDate: new Date().toISOString()
-      };
+      if (data.success) {
+        // Limpar carrinho
+        localStorage.removeItem('cart');
 
-      console.log('Pedido criado:', order);
-
-      // Limpar carrinho
-      localStorage.removeItem('cart');
-
-      // Simular resposta de sucesso
-      alert('🎉 Pedido realizado com sucesso! Em breve você receberá uma confirmação por email.');
-      
-      // Redirecionar para home
-      router.push('/');
+        // Mostrar mensagem de sucesso
+        alert(`🎉 Pedido #${data.order.id.substring(0, 8)} realizado com sucesso! Em breve você receberá uma confirmação por email.`);
+        
+        // Redirecionar para página de pedidos
+        router.push('/meus-pedidos');
+      } else {
+        throw new Error(data.error || 'Erro desconhecido');
+      }
       
     } catch (error) {
       console.error('Erro ao enviar pedido:', error);
