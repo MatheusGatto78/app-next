@@ -1,6 +1,6 @@
 import { AppSidebar } from "@/components/app-sidebar"
 import { ChartAreaInteractive } from "@/components/chart-area-interactive"
-import { DataTable } from "@/components/data-table"
+import { OrdersTable } from "@/components/orders-table"
 import { SectionCards } from "@/components/section-cards"
 import { SiteHeader } from "@/components/site-header"
 import {
@@ -8,9 +8,33 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 
-import data from "./data.json"
+async function getDashboardData() {
+  try {
+    const res = await fetch('http://localhost:3000/api/dashboard/stats', {
+      cache: 'no-store'
+    })
+    
+    if (!res.ok) {
+      throw new Error('Failed to fetch dashboard data')
+    }
+    
+    return await res.json()
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error)
+    return {
+      totalProducts: 0,
+      totalCategories: 0,
+      totalOrders: 0,
+      totalRevenue: 0,
+      recentOrders: [],
+      chartData: []
+    }
+  }
+}
 
-export default function Page() {
+export default async function Page() {
+  const dashboardData = await getDashboardData()
+
   return (
     <SidebarProvider
       style={
@@ -26,11 +50,16 @@ export default function Page() {
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <SectionCards />
+              <SectionCards stats={{
+                totalProducts: dashboardData.totalProducts,
+                totalCategories: dashboardData.totalCategories,
+                totalOrders: dashboardData.totalOrders,
+                totalRevenue: dashboardData.totalRevenue
+              }} />
               <div className="px-4 lg:px-6">
-                <ChartAreaInteractive />
+                <ChartAreaInteractive data={dashboardData.chartData} />
               </div>
-              <DataTable data={data} />
+              <OrdersTable orders={dashboardData.recentOrders} />
             </div>
           </div>
         </div>
