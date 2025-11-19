@@ -125,6 +125,16 @@ export default function Header() {
             >
               Bebidas
             </Link>
+            {user && (
+              <Link 
+                href="/dashboard" 
+                className={`text-sm font-medium transition-colors hover:text-blue-600 ${
+                  pathname?.startsWith('/dashboard') ? 'text-blue-600' : 'text-gray-700'
+                }`}
+              >
+                Dashboard
+              </Link>
+            )}
           </nav>
 
           {/* Cart and User Actions */}
@@ -183,6 +193,13 @@ export default function Header() {
                         onClick={() => setShowUserMenu(false)}
                       >
                         📦 Meus Pedidos
+                      </Link>
+                      <Link
+                        href="/dashboard"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        📊 Dashboard
                       </Link>
                       <button
                         onClick={handleLogout}
